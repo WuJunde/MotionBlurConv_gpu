@@ -1,9 +1,8 @@
 /*
- * Example of how to use the mxGPUArray API in a MEX file.  This example shows
- * how to write a MEX function that takes a gpuArray input and returns a
- * gpuArray output, e.g. B=mexFunction(A).
- *
- * Copyright 2012 The MathWorks, Inc.
+ *use gpu to accomplish the motion blur conv mirror(accomplished by Sun Jian on cpu)
+ * compile it by 'mex MotionBlurConv_mirror_gpu.cu'
+ * then call it by MotionBlurConv_mirror_gpu(original_img,blur_kernel_len_map,blur_kernel_ori_map) in matlab
+ * Written by Wu Junde,izzy843794947@gmail.com 2018.4
  */
 
 #include "mex.h"
@@ -20,7 +19,7 @@
  */
 
 void __global__ MotionBlurConv(int w_img,int h_img,double *X,
-                               double *bmag,double *bori,double *R,double *ker)
+                               double *bmag,double *bori,double *R)
 {
   /* Perform convolution */
  int sx, sy;
@@ -140,12 +139,12 @@ void __global__ MotionBlurConv(int w_img,int h_img,double *X,
             {
                //*(dst + offSet_img) += ker[(l + sy) * (2*sx + 1) + k + sx] / sumKernel;
                atomicAdd(R + j * w_img + i + offSet_img,dist2line * (*(src_img))/ sumKernel);
-               __syncthreads();
+               //__syncthreads();
             }
             else
             {
                atomicAdd(R + j * w_img + i + offSet_img,dist2line * (*(src_img)));
-               __syncthreads();
+               //__syncthreads();
             }
 
 
@@ -204,9 +203,6 @@ void mexFunction(int nlhs, mxArray *plhs[],
     w_img = (int)(size[0]);
     h_img = (int)(size[1]);
 
-    size_t size1 = sizeof(double)*50*50;
-    double* ker;
-    cudaMalloc(&ker, size1);
 
     /* Choose a reasonably sized number of threads for the block. */  /*now only process the N*N case*/
     dim3 threadsPerBlock(32, 32);     /*when 256 threads 16,when 1024 threads 32,if process all at once w_img,h_img*/
@@ -227,7 +223,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
      * the grid. For this example we are not guarding against this possibility.
      */
 
-    MotionBlurConv<<<blocksPerGrid, threadsPerBlock>>>(w_img, h_img, X, bmag, bori ,R ,ker);
+    MotionBlurConv<<<blocksPerGrid, threadsPerBlock>>>(w_img, h_img, X, bmag, bori ,R );
 
     /* Wrap the result up as a MATLAB gpuArray for return. */
     plhs[0] = mxGPUCreateMxArrayOnGPU(B);
@@ -240,5 +236,4 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mxGPUDestroyGPUArray(matrix_bmag);
     mxGPUDestroyGPUArray(matrix_bori);
     mxGPUDestroyGPUArray(B);
-    cudaFree(ker);
 }

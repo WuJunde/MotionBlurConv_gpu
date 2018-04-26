@@ -1,9 +1,8 @@
 /*
- * Example of how to use the mxGPUArray API in a MEX file.  This example shows
- * how to write a MEX function that takes a gpuArray input and returns a
- * gpuArray output, e.g. B=mexFunction(A).
- *
- * Copyright 2012 The MathWorks, Inc.
+ *use gpu to accomplish the motion blur conv(accomplished by Sun Jian on cpu)
+ * compile it by 'mex MotionBlurConv_gpu.cu'
+ * then call it by MotionBlurConv_gpu(original_img,blur_kernel_len_map,blur_kernel_ori_map) in matlab
+ * Written by Wu Junde,izzy843794947@gmail.com 2018.4
  */
 
 #include "mex.h"
